@@ -1,3 +1,4 @@
+import string
 import re
 import urllib2
 from bs4 import BeautifulSoup
@@ -14,7 +15,7 @@ class Course:
         self.url = u
 
 class Listing:
-    def __init__(self, idnum, ctype, sec, days, start, stop, build, room, rest, en, encap, wait, waitcap, status,u):
+    def __init__(self, idnum, ctype, sec, days, start, stop, build, room, rest, en, encap, wait, waitcap, status, u, p):
         self.id = idnum
         self.type = ctype
         self.section = sec
@@ -30,6 +31,7 @@ class Listing:
         self.waitlistcapacity = waitcap
         self.status = status
         self.url = u
+        self.prof = p
 
 ################################################################################
 #pulls data from a class url
@@ -40,22 +42,43 @@ def get_listings(dept,course):
     base = base.replace(' ', '%20')
     opener = urllib2.build_opener()
     url_opener = opener.open(base)
-    page = url_opener.read()
+    page = url_opener.read().replace("&nbsp;","")
     soup = BeautifulSoup(page)
 
+    #get lecture number (strips LEC 1 -> 1)
+    sections = []
+    for elem in soup.find_all("span", id=re.compile("lblGenericMessage"),class_=re.compile("coursehead")):
+        sections.append(re.sub("\D","", elem.text.strip()))
+    
+    #get professor name (strips out extra spaces)
+    profs = []
+    for elem in soup.find_all("span", id=re.compile("lblGenericMessage"),class_=re.compile("fachead")):
+        profs.append(re.sub( '\s+', ' ', elem.text).strip())
+    
+    #scrapes the following data from course url
     tags = ["lblIDNumber","lblActType","lblSectionNumber","lblDays","lblTimeStart","lblTimeEnd","lblBuilding","lblRoom","Restrict","EnrollTotal","EnrollCap","WaitListTotal","WaitListCap","Status"]
-    table = []    
+    table = []
     for i in range(len(tags)):
         tag = tags[i]
         subtable = []
         for elem in soup.find_all("span", id=re.compile(tag)):
-            subtable.append(elem.text.strip()) 
-        table.append(subtable)    
+            subtable.append(elem.text.strip())
+        table.append(subtable)
 
-    listings = []    
-    for i in range(len(table[0])):
-        listing = Listing(table[0][i],table[1][i],table[2][i],table[3][i],table[4][i],table[5][i],table[6][i],table[7][i],table[8][i],table[9][i],table[10][i],table[11][i],table[12][i],table[13][i],base)
-        listings.append(listing)    
+    #transposes table matrix to create array of listing objects
+    listings = []
+    for i in range(len(table[0])):     
+        #extracts number from alphanumeric section (2A -> 2, 10A -> 10)
+        sec = re.sub("\D","", table[2][i]).strip()
+        prof = ""
+        if sec in sections:
+            #finds index associated with section number
+            index = sections.index(sec)
+            #finds professor associated with index
+            prof = profs[index]        
+
+        listing = Listing(table[0][i],table[1][i],table[2][i],table[3][i],table[4][i],table[5][i],table[6][i],table[7][i],table[8][i],table[9][i],table[10][i],table[11][i],table[12][i],table[13][i],base,prof)
+        listings.append(listing)
     return listings
 ################################################################################
 #returns list of all departments
@@ -116,11 +139,12 @@ def get_courses(dept):
         course = Course(codes[i],names[i],base)
         courses.append(course)
     return courses
-################################################################################  
+################################################################################
 #add tests below
 def test_listing():
-    test = get_listings("COM SCI", "0031")     
+    test = get_listings("ANTHRO", "0119E M")     
     for i in range(len(test)):
+        print test[i].prof
         print test[i].id
         print test[i].type
         print test[i].section
@@ -146,7 +170,8 @@ def test_all():
             listings = get_listings(dept.code,course.code)
             print course.name
             for listing in listings:
-                print listing.type + " " + listing.section + " " + listing.status
+                print listing.status
 
-test_listing()
+
+test_all()
 ################################################################################
