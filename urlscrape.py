@@ -31,6 +31,7 @@ class Listing:
         self.status = status
         self.url = u
 
+################################################################################
 #pulls data from a class url
 #for example: http://www.registrar.ucla.edu/schedule/detselect.aspx?termsel=13S&subareasel=PHYSICS&idxcrs=0004AL++
 def get_listings(dept,course):
@@ -49,17 +50,14 @@ def get_listings(dept,course):
         subtable = []
         for elem in soup.find_all("span", id=re.compile(tag)):
             subtable.append(elem.text.strip()) 
-        table.append(subtable)
-    # for i in range(len(table)):
-    #     print table[i]
-    #     print "\n"    
+        table.append(subtable)    
 
     listings = []    
     for i in range(len(table[0])):
         listing = Listing(table[0][i],table[1][i],table[2][i],table[3][i],table[4][i],table[5][i],table[6][i],table[7][i],table[8][i],table[9][i],table[10][i],table[11][i],table[12][i],table[13][i],base)
         listings.append(listing)    
     return listings
-
+################################################################################
 #returns list of all departments
 def get_depts():
     #creates a BSoup object with parse tree from url
@@ -87,9 +85,8 @@ def get_depts():
     for i in range(len(codes)):
         d = Department(codes[i],names[i])
         depts.append(d)
-
     return depts
-
+################################################################################
 #returns list of all courses in a department
 def get_courses(dept):
     #creates a BSoup object with parse tree from url
@@ -118,9 +115,9 @@ def get_courses(dept):
     for i in range(len(codes)):
         course = Course(codes[i],names[i],base)
         courses.append(course)
-
     return courses
-
+################################################################################  
+#add tests below
 def test_listing():
     test = get_listings("COM SCI", "0031")     
     for i in range(len(test)):
@@ -152,3 +149,4 @@ def test_all():
                 print listing.type + " " + listing.section + " " + listing.status
 
 test_listing()
+################################################################################
