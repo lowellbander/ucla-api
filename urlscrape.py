@@ -39,10 +39,7 @@ class Listing:
 def get_listings(dept,course):
     #creates a BSoup object with parse tree from url
     base = get_course_url(dept,course)
-    opener = urllib2.build_opener()
-    url_opener = opener.open(base)
-    page = url_opener.read().replace("&nbsp;","")
-    soup = BeautifulSoup(page)
+    soup = get_soup_from_url(base)
 
     #get lecture number (strips LEC 1 -> 1)
     sections = []
@@ -84,10 +81,7 @@ def get_listings(dept,course):
 def get_depts():
     #creates a BSoup object with parse tree from url
     base = "http://www.registrar.ucla.edu/schedule/schedulehome.aspx"
-    opener = urllib2.build_opener()
-    url_opener = opener.open(base)
-    page = url_opener.read()
-    soup = BeautifulSoup(page)
+    soup = get_course_url(base)
 
     #adds all department codes to array (ex: COM SCI)
     codes = []
@@ -114,10 +108,7 @@ def get_courses(dept):
     #creates a BSoup object with parse tree from url
     base = "http://www.registrar.ucla.edu/schedule/crsredir.aspx?termsel=13S&subareasel="+dept
     base = base.replace(' ', '%20')       
-    opener = urllib2.build_opener()
-    url_opener = opener.open(base)
-    page = url_opener.read()
-    soup = BeautifulSoup(page)
+    soupe = get_soup_from_url(base)
 
     #adds all course codes to array (ex: COM SCI)
     codes = []
@@ -145,6 +136,13 @@ def get_course_url(dept, course):
     base = "http://www.registrar.ucla.edu/schedule/detselect.aspx?termsel=13S&subareasel="+dept+"&idxcrs="+course
     base = base.replace(' ', '%20')
     return base    
+
+def get_soup_from_url(url):
+    opener = urllib2.build_opener()
+    url_opener = opener.open(url)
+    page = url_opener.read()
+    soup = BeautifulSoup(page)
+    return soup
 ################################################################################
 def write_urlmap():
     depts = get_depts()
@@ -154,7 +152,6 @@ def write_urlmap():
             courses = get_courses(d.code)
             for c in courses:
                 f.write(d.code + " " + c.code + "," + c.url+"\n")
-
 
 def write_coursemap():
     depts = get_depts()
@@ -204,5 +201,77 @@ def test_all():
             for listing in listings:
                 print listing.status
 ################################################################################
+def is_open(dept,course,ctype,section):
+    listings = get_listings(dept,course)
+    for listing in listings:
+        ty = listing.type
+        se = listing.section
+        stat = listing.status
+        if(ty == ctype and se == section and stat == "Open"):
+            return True
+    return False
+
+def is_open_with_prof(dept,course,prf):
+    listings = get_listings(dept,course)
+    for listing in listings:
+        stat = listing.status
+        prof = listing.prof
+        if(prf == prof and stat == "Open"):
+            return True
+    return False
+
+def is_any_open(dept,course):
+    listings = get_listings(dept,course)
+    for listing in listings:
+        stat = listing.status
+        if(stat == "Open"):
+            return True
+    return False
+
+def is_wlist(dept,course,ctype,section):
+    listings = get_listings(dept,course)
+    for listing in listings:
+        ty = listing.type
+        se = listing.section
+        stat = listing.status
+        if(ty == ctype and se == section and (stat == "Open" or stat == "W-List")):
+            return True
+    return False
+
+def is_wlist_with_prof(dept,course,prf):
+    listings = get_listings(dept,course)
+    for listing in listings:
+        stat = listing.status
+        prof = listing.prof
+        if(prf == prof and (stat == "Open" or stat == "W-List")):
+            return True
+    return False
+
+def is_any_wlist(dept,course):
+    listings = get_listings(dept,course)
+    for listing in listings:
+        stat = listing.status
+        if(stat == "Open" or stat == "W-List"):
+            return True
+    return False
+################################################################################
 #add code to execute here
-test_listing()
+if(is_open("PHYSICS","0105A","DIS","1A")):
+    print 'open!'
+else:
+    print 'closed'
+
+if(is_any_open("PHYSICS","0105A")):
+    print 'open!'
+else:
+    print 'closed'
+
+if(is_wlist("PHYSICS","0105A","DIS","1A")):
+    print 'open!'
+else:
+    print 'closed'
+
+if(is_any_wlist("PHYSICS","0105A")):
+    print 'open!'
+else:
+    print 'closed'
