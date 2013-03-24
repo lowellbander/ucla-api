@@ -38,8 +38,7 @@ class Listing:
 #for example: http://www.registrar.ucla.edu/schedule/detselect.aspx?termsel=13S&subareasel=PHYSICS&idxcrs=0004AL++
 def get_listings(dept,course):
     #creates a BSoup object with parse tree from url
-    base = "http://www.registrar.ucla.edu/schedule/detselect.aspx?termsel=13S&subareasel="+dept+"&idxcrs="+course
-    base = base.replace(' ', '%20')
+    base = get_course_url(dept,course)
     opener = urllib2.build_opener()
     url_opener = opener.open(base)
     page = url_opener.read().replace("&nbsp;","")
@@ -120,12 +119,12 @@ def get_courses(dept):
     page = url_opener.read()
     soup = BeautifulSoup(page)
 
-    #adds all department codes to array (ex: COM SCI)
+    #adds all course codes to array (ex: COM SCI)
     codes = []
     for elem in soup.find_all("option"):
         codes.append(elem['value'].strip())
 
-   #adds all department names to array (ex: Computer Science)
+   #adds all course names to array (ex: Computer Science)
     names = []
     for elem in soup.find_all("option"):
         names.append(elem.text.strip())
@@ -136,13 +135,46 @@ def get_courses(dept):
 
     courses = []
     for i in range(len(codes)):
-        course = Course(codes[i],names[i],base)
+        url = get_course_url(dept,codes[i])      
+        course = Course(codes[i],names[i],url)
         courses.append(course)
     return courses
 ################################################################################
+#get course url from dept and course ids
+def get_course_url(dept, course):
+    base = "http://www.registrar.ucla.edu/schedule/detselect.aspx?termsel=13S&subareasel="+dept+"&idxcrs="+course
+    base = base.replace(' ', '%20')
+    return base    
+################################################################################
+def write_urlmap():
+    depts = get_depts()
+    open('urlmap','w').close()
+    with open('urlmap','a') as f:
+        for d in depts:
+            courses = get_courses(d.code)
+            for c in courses:
+                f.write(d.code + " " + c.code + "," + c.url+"\n")
+
+
+def write_coursemap():
+    depts = get_depts()
+    open('coursemap','w').close()
+    with open('coursemap','a') as f:
+        for d in depts:
+            courses = get_courses(d.code)
+            for c in courses:
+                f.write(c.name.strip()+","+c.code.strip()+"\n")
+
+def write_deptmap():
+    depts = get_depts()
+    open('deptmap','w').close()
+    with open('deptmap','a') as f:
+        for d in depts:
+            f.write(d.name.strip()+","+d.code.strip()+"\n")
+################################################################################
 #add tests below
 def test_listing():
-    test = get_listings("ANTHRO", "0119E M")     
+    test = get_listings("PHYSICS", "0004AL")     
     for i in range(len(test)):
         print test[i].prof
         print test[i].id
@@ -165,13 +197,12 @@ def test_listing():
 def test_all():
     depts = get_depts()
     for dept in depts:
-        courses = get_courses(dept.code)
+        courses = get_courses(dept.code)        
         for course in courses:
             listings = get_listings(dept.code,course.code)
-            print course.name
+            print course.url
             for listing in listings:
                 print listing.status
-
-
-test_all()
 ################################################################################
+#add code to execute here
+test_listing()
