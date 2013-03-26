@@ -1,7 +1,9 @@
+import random
 import string
 import re
 import urllib2
 from bs4 import BeautifulSoup
+import time
 
 class Department:
     def __init__(self, c, n):
@@ -9,10 +11,11 @@ class Department:
         self.name = n
 
 class Course:
-    def __init__(self, c, n, u):
+    def __init__(self, c, n, u,d):
         self.code = c
         self.name = n
         self.url = u
+        self.dept = d
 
 class Listing:
     def __init__(self, idnum, ctype, sec, days, start, stop, build, room, rest, en, encap, wait, waitcap, status, u, p):
@@ -36,9 +39,11 @@ class Listing:
 ################################################################################
 #pulls data from a class url
 #for example: http://www.registrar.ucla.edu/schedule/detselect.aspx?termsel=13S&subareasel=PHYSICS&idxcrs=0004AL++
-def get_listings(dept,course):
+def get_listings(dept="",course="",base=""):
     #creates a BSoup object with parse tree from url
-    base = get_course_url(dept,course)
+    if(len(base) == 0):
+        base = get_course_url(dept,course)
+    
     soup = get_soup_from_url(base)
 
     #get lecture number (strips LEC 1 -> 1)
@@ -76,12 +81,13 @@ def get_listings(dept,course):
         listing = Listing(table[0][i],table[1][i],table[2][i],table[3][i],table[4][i],table[5][i],table[6][i],table[7][i],table[8][i],table[9][i],table[10][i],table[11][i],table[12][i],table[13][i],base,prof)
         listings.append(listing)
     return listings
+
 ################################################################################
 #returns list of all departments
 def get_depts():
     #creates a BSoup object with parse tree from url
     base = "http://www.registrar.ucla.edu/schedule/schedulehome.aspx"
-    soup = get_course_url(base)
+    soup = get_soup_from_url(base)
 
     #adds all department codes to array (ex: COM SCI)
     codes = []
@@ -108,7 +114,7 @@ def get_courses(dept):
     #creates a BSoup object with parse tree from url
     base = "http://www.registrar.ucla.edu/schedule/crsredir.aspx?termsel=13S&subareasel="+dept
     base = base.replace(' ', '%20')       
-    soupe = get_soup_from_url(base)
+    soup = get_soup_from_url(base)
 
     #adds all course codes to array (ex: COM SCI)
     codes = []
@@ -127,7 +133,7 @@ def get_courses(dept):
     courses = []
     for i in range(len(codes)):
         url = get_course_url(dept,codes[i])      
-        course = Course(codes[i],names[i],url)
+        course = Course(codes[i],names[i],url,dept)
         courses.append(course)
     return courses
 ################################################################################
@@ -152,6 +158,18 @@ def write_urlmap():
             courses = get_courses(d.code)
             for c in courses:
                 f.write(d.code + " " + c.code + "," + c.url+"\n")
+
+def write_urllist():
+    depts = get_depts()
+    open('urllist','w').close()
+    urls = []
+    with open('urllist','a') as f:
+        for d in depts:
+            courses = get_courses(d.code)
+            for c in courses:
+                f.write(c.url+"\n")                
+                urls.append(c.url)
+    return urls
 
 def write_coursemap():
     depts = get_depts()
@@ -256,22 +274,13 @@ def is_any_wlist(dept,course):
     return False
 ################################################################################
 #add code to execute here
-if(is_open("PHYSICS","0105A","DIS","1A")):
-    print 'open!'
-else:
-    print 'closed'
+t0 = time.time()
 
-if(is_any_open("PHYSICS","0105A")):
-    print 'open!'
-else:
-    print 'closed'
+depts = get_depts()
+for dept in depts:
+    courses = get_courses(dept.code)        
+    for course in courses:            
+        print course.url
 
-if(is_wlist("PHYSICS","0105A","DIS","1A")):
-    print 'open!'
-else:
-    print 'closed'
-
-if(is_any_wlist("PHYSICS","0105A")):
-    print 'open!'
-else:
-    print 'closed'
+t1 = time.time()
+print t1-t0
